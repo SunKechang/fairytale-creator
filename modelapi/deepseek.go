@@ -1,4 +1,4 @@
-package deepseek
+package modelapi
 
 import (
 	"bytes"
@@ -11,27 +11,27 @@ import (
 	"net/http"
 )
 
-type Client struct {
+type DeepSeekClient struct {
 	APIKey     string
 	BaseURL    string
 	HttpClient *http.Client
 }
 
-func NewClient(apiKey string, baseURL string) *Client {
-	return &Client{
+func NewDeepSeekClient(apiKey string, baseURL string) *DeepSeekClient {
+	return &DeepSeekClient{
 		APIKey:     apiKey,
 		BaseURL:    baseURL,
 		HttpClient: &http.Client{},
 	}
 }
 
-func (c *Client) GenerateFairyTale(theme string, date string, style []string) (*response.Story, error) {
+func (c *DeepSeekClient) GenerateFairyTale(theme string, date string, style []string) (*response.Story, error) {
 	prompt := fmt.Sprintf(`请创作一个关于"%s"的童话故事，供儿童阅读。要求：
     1. 故事包含3-4个章节，总体字数在2000字左右
     2. 每个章节需要提供详细的图片描述，用于AI绘画
     3. 为整个故事推荐一个背景音乐风格
     4. 今天是%s，请确保故事内容新颖不重复，但故事中不要出现明确的时间信息
-    5. 图片描述提示词以如下方式进行拼接：[ 主体描述 ] + [ 风格设定 ] + [ 细节要求 ] + [ 视觉氛围 ] + [ 比例 ]。其中比例固定为 16:9。参考示例：
+    5. 图片描述提示词以如下方式进行拼接：[ 主体描述 ] + [ 风格设定 ] + [ 细节要求 ] + [ 视觉氛围 ] + [ 图像宽高像素值 ]。其中宽高像素值固定为 2560x1440。参考示例：
         "新中式动漫插画，一个穿着绿色恐龙连体睡衣的小男孩，在雨后初晴的阳台上，好奇地伸出手去接屋檐滴落的水珠。天空湛蓝如洗，远处有彩虹和被雨水浸润后更显葱郁的城市楼宇。光线透过云层形成美丽的丁达尔光束，空气中仿佛还弥漫着潮湿清新的味道。"
     6. 图片描述中，风格根据故事内容从以下风格中选出：%s
     请以JSON格式返回，包含以下字段：

@@ -2,11 +2,10 @@ package service
 
 import (
 	"encoding/json"
-	"fairytale-creator/cosyvoice"
-	"fairytale-creator/deepseek"
+	"errors"
 	"fairytale-creator/flag"
-	"fairytale-creator/jimeng"
 	"fairytale-creator/logger"
+	"fairytale-creator/modelapi"
 	"fairytale-creator/util"
 	"fmt"
 	"os"
@@ -43,30 +42,23 @@ func NewStoryService() *StoryService {
 func (s *StoryService) AddStory() bool {
 	currentDate := time.Now().Format("2006-01-02")
 	theme := util.GenerateDailyTheme(currentDate)
-	client := deepseek.NewClient(s.DeepSeekAPIKey, s.DeepSeekUrl)
+	client := modelapi.NewDeepSeekClient(s.DeepSeekAPIKey, s.DeepSeekUrl)
 	story, err := client.GenerateFairyTale(theme, currentDate, util.GetStyleArray())
 	if err != nil {
 		logger.Error(err.Error())
 		return false
 	}
-	jimengClient := jimeng.NewClient(s.JimengAccessKeyID, s.JimengSecretAccessKey)
-	option := make(map[string]interface{})
-	option["width"] = 1664
-	option["height"] = 936
-	option["scale"] = 0.85
+	doubaoSeedreamClient := modelapi.NewDoubaoSeedreamClient(flag.DoubaoSeedreamAPIKey)
+	firstImageUrl := ""
 	for i, chapter := range story.Chapters {
-		reqKey := JimengReqKeyI2i
-		if option["image_urls"] == nil {
-			reqKey = JimengReqKeyT2i
-		} else {
+		imgUrl := ""
+		err := errors.New("")
+		if firstImageUrl != "" {
 			chapter.ImagePrompt = "与所给图片中的风格以及人物保持一致，场景无需保持一致。绘制如下场景：" + chapter.ImagePrompt
+			imgUrl, err = doubaoSeedreamClient.GenerateImageFromPromptAndGetURL(chapter.ImagePrompt)
+		} else {
+			imgUrl, err = doubaoSeedreamClient.GenerateImageFromPromptAndImageAndGetURL(chapter.ImagePrompt, firstImageUrl)
 		}
-		taskID, err := jimengClient.SubmitTask(chapter.ImagePrompt, option, JimengAction, JimengVersion, reqKey)
-		if err != nil {
-			logger.Error(err.Error())
-			return false
-		}
-		imgUrl, err := jimengClient.QueryTaskInCircle(reqKey, taskID)
 		if err != nil {
 			logger.Error(err.Error())
 			return false
@@ -77,9 +69,8 @@ func (s *StoryService) AddStory() bool {
 			story.Chapters[i].VoicePath = voicePath
 		}
 
-		if option["image_urls"] == nil {
-			option["image_urls"] = []string{}
-			option["image_urls"] = append(option["image_urls"].([]string), imgUrl)
+		if firstImageUrl == "" {
+			firstImageUrl = imgUrl
 		}
 	}
 	filename := fmt.Sprintf("%s/story_%s.json", flag.StoryRoot, currentDate)
@@ -101,7 +92,7 @@ func (s *StoryService) GenerateVoice(text string, filename string) bool {
 	if _, err := os.Stat(flag.VoiceRoot); os.IsNotExist(err) {
 		os.MkdirAll(flag.VoiceRoot, 0755)
 	}
-	client := cosyvoice.NewTTSClient(flag.CosyVoiceAPIKey, filename)
+	client := modelapi.NewCosyVoiceClient(flag.CosyVoiceAPIKey, filename)
 	err := client.Synthesize([]string{text})
 	if err != nil {
 		logger.Error(err.Error())

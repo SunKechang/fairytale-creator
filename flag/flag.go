@@ -16,6 +16,7 @@ var (
 	ImageRoot             string
 	CosyVoiceAPIKey       string
 	VoiceRoot             string
+	DoubaoSeedreamAPIKey  string
 )
 
 func init() {
@@ -30,5 +31,6 @@ func init() {
 	flag.StringVar(&ImageRoot, "image-root", "images", "图片存储根路径")
 	flag.StringVar(&CosyVoiceAPIKey, "cosy-voice-api-key", "", "CosyVoice API Key")
 	flag.StringVar(&VoiceRoot, "voice-root", "voices", "语音存储根路径")
+	flag.StringVar(&DoubaoSeedreamAPIKey, "doubao-seedream-api-key", "", "Doubao Seedream API Key")
 	flag.Parse()
 }

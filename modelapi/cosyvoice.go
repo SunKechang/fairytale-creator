@@ -1,4 +1,4 @@
-package cosyvoice
+package modelapi
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 )
 
 // TTSClient 文本转语音客户端
-type TTSClient struct {
+type CosyVoiceClient struct {
 	APIKey     string
 	OutputFile string
 	Voice      string
@@ -24,9 +24,9 @@ type TTSClient struct {
 	conn       *websocket.Conn
 }
 
-// NewTTSClient 创建新的TTS客户端
-func NewTTSClient(apiKey, outputFile string) *TTSClient {
-	return &TTSClient{
+// NewCosyVoiceClient 创建新的TTS客户端
+func NewCosyVoiceClient(apiKey, outputFile string) *CosyVoiceClient {
+	return &CosyVoiceClient{
 		APIKey:     apiKey,
 		OutputFile: outputFile,
 		Voice:      "longyuan_v2", // 默认声音
@@ -39,7 +39,7 @@ func NewTTSClient(apiKey, outputFile string) *TTSClient {
 }
 
 // 设置声音参数
-func (c *TTSClient) SetVoiceParams(voice, format string, sampleRate, volume, rate, pitch int) {
+func (c *CosyVoiceClient) SetVoiceParams(voice, format string, sampleRate, volume, rate, pitch int) {
 	if voice != "" {
 		c.Voice = voice
 	}
@@ -61,7 +61,7 @@ func (c *TTSClient) SetVoiceParams(voice, format string, sampleRate, volume, rat
 }
 
 // 合成文本为语音
-func (c *TTSClient) Synthesize(texts []string) error {
+func (c *CosyVoiceClient) Synthesize(texts []string) error {
 	// 检查并清空输出文件
 	if err := c.clearOutputFile(); err != nil {
 		return fmt.Errorf("清空输出文件失败: %v", err)
@@ -158,7 +158,7 @@ type Event struct {
 var dialer = websocket.DefaultDialer
 
 // 连接WebSocket服务
-func (c *TTSClient) connectWebSocket() (*websocket.Conn, error) {
+func (c *CosyVoiceClient) connectWebSocket() (*websocket.Conn, error) {
 	header := make(http.Header)
 	header.Add("X-DashScope-DataInspection", "enable")
 	header.Add("Authorization", fmt.Sprintf("bearer %s", c.APIKey))
@@ -170,7 +170,7 @@ func (c *TTSClient) connectWebSocket() (*websocket.Conn, error) {
 }
 
 // 发送run-task指令
-func (c *TTSClient) sendRunTaskCmd() (string, error) {
+func (c *CosyVoiceClient) sendRunTaskCmd() (string, error) {
 	taskID := uuid.New().String()
 	runTaskCmd := Event{
 		Header: Header{
@@ -204,7 +204,7 @@ func (c *TTSClient) sendRunTaskCmd() (string, error) {
 }
 
 // 发送待合成文本
-func (c *TTSClient) sendContinueTaskCmd(taskID string, texts []string) error {
+func (c *CosyVoiceClient) sendContinueTaskCmd(taskID string, texts []string) error {
 	for _, text := range texts {
 		runTaskCmd := Event{
 			Header: Header{
@@ -233,7 +233,7 @@ func (c *TTSClient) sendContinueTaskCmd(taskID string, texts []string) error {
 }
 
 // 启动一个goroutine来接收结果
-func (c *TTSClient) startResultReceiver() (chan struct{}, *bool) {
+func (c *CosyVoiceClient) startResultReceiver() (chan struct{}, *bool) {
 	done := make(chan struct{})
 	taskStarted := new(bool)
 	*taskStarted = false
@@ -272,7 +272,7 @@ func (c *TTSClient) startResultReceiver() (chan struct{}, *bool) {
 }
 
 // 处理事件
-func (c *TTSClient) handleEvent(event Event, taskStarted *bool) bool {
+func (c *CosyVoiceClient) handleEvent(event Event, taskStarted *bool) bool {
 	switch event.Header.Event {
 	case "task-started":
 		fmt.Println("收到task-started事件")
@@ -293,7 +293,7 @@ func (c *TTSClient) handleEvent(event Event, taskStarted *bool) bool {
 }
 
 // 处理任务失败事件
-func (c *TTSClient) handleTaskFailed(event Event) {
+func (c *CosyVoiceClient) handleTaskFailed(event Event) {
 	if event.Header.ErrorMessage != "" {
 		fmt.Printf("任务失败：%s\n", event.Header.ErrorMessage)
 	} else {
@@ -302,14 +302,14 @@ func (c *TTSClient) handleTaskFailed(event Event) {
 }
 
 // 关闭连接
-func (c *TTSClient) closeConnection() {
+func (c *CosyVoiceClient) closeConnection() {
 	if c.conn != nil {
 		c.conn.Close()
 	}
 }
 
 // 写入二进制数据到文件
-func (c *TTSClient) writeBinaryDataToFile(data []byte) error {
+func (c *CosyVoiceClient) writeBinaryDataToFile(data []byte) error {
 	file, err := os.OpenFile(c.OutputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -321,7 +321,7 @@ func (c *TTSClient) writeBinaryDataToFile(data []byte) error {
 }
 
 // 发送finish-task指令
-func (c *TTSClient) sendFinishTaskCmd(taskID string) error {
+func (c *CosyVoiceClient) sendFinishTaskCmd(taskID string) error {
 	finishTaskCmd := Event{
 		Header: Header{
 			Action:    "finish-task",
@@ -340,7 +340,7 @@ func (c *TTSClient) sendFinishTaskCmd(taskID string) error {
 }
 
 // 清空输出文件
-func (c *TTSClient) clearOutputFile() error {
+func (c *CosyVoiceClient) clearOutputFile() error {
 	file, err := os.OpenFile(c.OutputFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -358,7 +358,7 @@ func test() {
 	}
 
 	// 创建TTS客户端
-	client := NewTTSClient(apiKey, "output.mp3")
+	client := NewCosyVoiceClient(apiKey, "output.mp3")
 
 	// 可选：设置声音参数
 	client.SetVoiceParams("longxiaochun_v2", "mp3", 22050, 50, 1, 1)

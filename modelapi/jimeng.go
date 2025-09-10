@@ -1,4 +1,4 @@
-package jimeng
+package modelapi
 
 import (
 	"bytes"
@@ -17,7 +17,7 @@ import (
 )
 
 // 客户端结构体
-type ImageGenerationClient struct {
+type JimengClient struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	Addr            string
@@ -93,8 +93,8 @@ const (
 )
 
 // 新建客户端
-func NewClient(accessKeyID, secretAccessKey string) *ImageGenerationClient {
-	return &ImageGenerationClient{
+func NewJimengClient(accessKeyID, secretAccessKey string) *JimengClient {
+	return &JimengClient{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
 		Addr:            "https://visual.volcengineapi.com",
@@ -130,7 +130,7 @@ func hashSHA256(data []byte) []byte {
 }
 
 // 执行请求
-func (c *ImageGenerationClient) doRequest(method string, action string, version string, queries url.Values, body []byte) ([]byte, int, error) {
+func (c *JimengClient) doRequest(method string, action string, version string, queries url.Values, body []byte) ([]byte, int, error) {
 	logger.Log("requestBody:", string(body))
 	// 构建请求URL
 	queries.Set("Action", action)
@@ -214,7 +214,7 @@ func (c *ImageGenerationClient) doRequest(method string, action string, version 
 }
 
 // 提交文生图、图生图任务
-func (c *ImageGenerationClient) SubmitTask(prompt string, options map[string]interface{},
+func (c *JimengClient) SubmitTask(prompt string, options map[string]interface{},
 	action string, version string, reqKey string) (string, error) {
 	// 构建请求体
 	reqBody := SubmitTaskRequest{
@@ -272,7 +272,7 @@ func (c *ImageGenerationClient) SubmitTask(prompt string, options map[string]int
 	return response.Data.TaskID, nil
 }
 
-func (c *ImageGenerationClient) QueryTaskInCircle(reqKey string, taskID string) (string, error) {
+func (c *JimengClient) QueryTaskInCircle(reqKey string, taskID string) (string, error) {
 	startTime := time.Now()
 	time.Sleep(2 * time.Second)
 	logger.Log("QueryTaskInCircle", reqKey, taskID, "starttime", startTime.Format("2006-01-02 15:04:05"))
@@ -290,7 +290,7 @@ func (c *ImageGenerationClient) QueryTaskInCircle(reqKey string, taskID string) 
 }
 
 // 查询任务状态
-func (c *ImageGenerationClient) QueryTask(reqKey string, taskID string) (*QueryTaskResponse, error) {
+func (c *JimengClient) QueryTask(reqKey string, taskID string) (*QueryTaskResponse, error) {
 	// 构建请求体
 	reqBody := QueryTaskRequest{
 		ReqKey:  reqKey,
