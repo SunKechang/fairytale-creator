@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fairytale-creator/database"
 	"fairytale-creator/handler"
 	"fairytale-creator/logger"
 	"net/http"
@@ -17,6 +18,9 @@ import (
 )
 
 func main() {
+	// 初始化数据库
+	database.Init()
+
 	r := gin.Default()
 
 	// 创建一个基于内存的存储对象

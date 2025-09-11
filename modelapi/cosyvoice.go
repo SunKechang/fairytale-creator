@@ -275,13 +275,11 @@ func (c *CosyVoiceClient) startResultReceiver() (chan struct{}, *bool) {
 func (c *CosyVoiceClient) handleEvent(event Event, taskStarted *bool) bool {
 	switch event.Header.Event {
 	case "task-started":
-		fmt.Println("收到task-started事件")
 		*taskStarted = true
 	case "result-generated":
 		// 忽略result-generated事件
 		return false
 	case "task-finished":
-		fmt.Println("任务完成")
 		return true
 	case "task-failed":
 		c.handleTaskFailed(event)

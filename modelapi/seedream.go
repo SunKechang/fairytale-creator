@@ -67,7 +67,7 @@ func NewDoubaoSeedreamClient(apiKey string) *DoubaoSeedreamClient {
 func (c *DoubaoSeedreamClient) GenerateImage(prompt string, imageURL *string) (*ImageGenerationResponse, error) {
 	// 构建请求体
 	var requestBody interface{}
-	if imageURL != nil {
+	if imageURL != nil && *imageURL != "" {
 		requestBody = I2IGenerationRequest{
 			Model:                     "doubao-seedream-4-0-250828",
 			Prompt:                    prompt,

@@ -1,16 +1,15 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
+	"fairytale-creator/database"
 	"fairytale-creator/flag"
 	"fairytale-creator/logger"
 	"fairytale-creator/modelapi"
+	"fairytale-creator/response"
 	"fairytale-creator/util"
-	"fmt"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,32 +38,34 @@ func NewStoryService() *StoryService {
 	}
 }
 
-func (s *StoryService) AddStory() bool {
+func (s *StoryService) GenerateStory() *response.Story {
 	currentDate := time.Now().Format("2006-01-02")
 	theme := util.GenerateDailyTheme(currentDate)
 	client := modelapi.NewDeepSeekClient(s.DeepSeekAPIKey, s.DeepSeekUrl)
 	story, err := client.GenerateFairyTale(theme, currentDate, util.GetStyleArray())
 	if err != nil {
 		logger.Error(err.Error())
-		return false
+		return nil
 	}
+	logger.Log("deepseek end", story.Description)
+	// return story
 	doubaoSeedreamClient := modelapi.NewDoubaoSeedreamClient(flag.DoubaoSeedreamAPIKey)
 	firstImageUrl := ""
 	for i, chapter := range story.Chapters {
 		imgUrl := ""
 		err := errors.New("")
 		if firstImageUrl != "" {
-			chapter.ImagePrompt = "与所给图片中的风格以及人物保持一致，场景无需保持一致。绘制如下场景：" + chapter.ImagePrompt
 			imgUrl, err = doubaoSeedreamClient.GenerateImageFromPromptAndGetURL(chapter.ImagePrompt)
 		} else {
 			imgUrl, err = doubaoSeedreamClient.GenerateImageFromPromptAndImageAndGetURL(chapter.ImagePrompt, firstImageUrl)
 		}
 		if err != nil {
 			logger.Error(err.Error())
-			return false
+			return nil
 		}
 		story.Chapters[i].ImagePath = imgUrl
-		voicePath := path.Join(flag.VoiceRoot, uuid.NewString()+".mp3")
+		logger.Log("chapter image", imgUrl)
+		voicePath := path.Join(flag.VoiceRoot, uuid.NewString()+currentDate+".mp3")
 		if ok := s.GenerateVoice(chapter.Content, voicePath); ok {
 			story.Chapters[i].VoicePath = voicePath
 		}
@@ -72,20 +73,59 @@ func (s *StoryService) AddStory() bool {
 		if firstImageUrl == "" {
 			firstImageUrl = imgUrl
 		}
+		logger.Log("chapter voice", voicePath)
 	}
-	filename := fmt.Sprintf("%s/story_%s.json", flag.StoryRoot, currentDate)
-	data, _ := json.MarshalIndent(story, "", "  ")
-	result := strings.ReplaceAll(string(data), `\u0026`, "&")
-	if _, err := os.Stat(flag.StoryRoot); os.IsNotExist(err) {
-		os.MkdirAll(flag.StoryRoot, 0755)
+	// filename := fmt.Sprintf("%s/story_%s.json", flag.StoryRoot, currentDate)
+	// data, _ := json.MarshalIndent(story, "", "  ")
+	// result := strings.ReplaceAll(string(data), `\u0026`, "&")
+	// if _, err := os.Stat(flag.StoryRoot); os.IsNotExist(err) {
+	// 	os.MkdirAll(flag.StoryRoot, 0755)
+	// }
+	// os.WriteFile(filename, []byte(result), 0644)
+
+	// fmt.Printf("成功生成故事: %s\n", story.Title)
+	// fmt.Printf("背景音乐风格: %s\n", story.MusicStyle)
+	// fmt.Printf("保存位置: %s\n", filename)
+
+	return story
+}
+
+func (s *StoryService) AddStory(story *response.Story) error {
+	currentDate := time.Now().Format("2006-01-02")
+	storyDao := database.NewStoryDao()
+	storyModel := database.Story{
+		Title:       story.Title,
+		Author:      story.Author,
+		Description: story.Description,
+		MusicStyle:  story.MusicStyle,
 	}
-	os.WriteFile(filename, []byte(result), 0644)
-
-	fmt.Printf("成功生成故事: %s\n", story.Title)
-	fmt.Printf("背景音乐风格: %s\n", story.MusicStyle)
-	fmt.Printf("保存位置: %s\n", filename)
-
-	return true
+	err := storyDao.AddStory(&storyModel)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	chapterDao := database.NewChapterDao()
+	for _, chapter := range story.Chapters {
+		imagePath := path.Join(flag.ImageRoot, uuid.NewString()+currentDate+".png")
+		err := util.SaveImage(chapter.ImagePath, imagePath)
+		if err != nil {
+			logger.Error("save image error: " + err.Error())
+		}
+		chapterModel := database.Chapter{
+			StoryID:     storyModel.ID,
+			Title:       chapter.Title,
+			Content:     chapter.Content,
+			ImagePrompt: chapter.ImagePrompt,
+			ImagePath:   imagePath,
+			VoicePath:   chapter.VoicePath,
+		}
+		err = chapterDao.AddChapter(&chapterModel)
+		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *StoryService) GenerateVoice(text string, filename string) bool {

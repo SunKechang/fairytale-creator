@@ -17,6 +17,11 @@ var (
 	CosyVoiceAPIKey       string
 	VoiceRoot             string
 	DoubaoSeedreamAPIKey  string
+	MysqlUsername         string
+	MysqlPassword         string
+	MysqlHost             string
+	MysqlPort             string
+	MysqlDatabase         string
 )
 
 func init() {
@@ -32,5 +37,10 @@ func init() {
 	flag.StringVar(&CosyVoiceAPIKey, "cosy-voice-api-key", "", "CosyVoice API Key")
 	flag.StringVar(&VoiceRoot, "voice-root", "voices", "语音存储根路径")
 	flag.StringVar(&DoubaoSeedreamAPIKey, "doubao-seedream-api-key", "", "Doubao Seedream API Key")
+	flag.StringVar(&MysqlUsername, "mysql-username", "admin", "Mysql用户名")
+	flag.StringVar(&MysqlPassword, "mysql-password", "20240316", "Mysql密码")
+	flag.StringVar(&MysqlHost, "mysql-host", "localhost", "Mysq	l主机")
+	flag.StringVar(&MysqlPort, "mysql-port", "3306", "Mysql端口")
+	flag.StringVar(&MysqlDatabase, "mysql-database", "fairytale", "Mysql数据库")
 	flag.Parse()
 }
