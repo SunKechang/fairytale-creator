@@ -72,21 +72,21 @@ func (c *DoubaoSeedreamClient) GenerateImage(prompt string, imageURL *string) (*
 			Model:                     "doubao-seedream-4-0-250828",
 			Prompt:                    prompt,
 			Image:                     imageURL,
-			Size:                      "2K",
+			Size:                      "1440x2560",
 			SequentialImageGeneration: "disabled",
 			Stream:                    false,
 			ResponseFormat:            "url",
-			Watermark:                 true,
+			Watermark:                 false,
 		}
 	} else {
 		requestBody = T2IGenerationRequest{
 			Model:                     "doubao-seedream-4-0-250828",
 			Prompt:                    prompt,
-			Size:                      "2K",
+			Size:                      "1440x2560",
 			SequentialImageGeneration: "disabled",
 			Stream:                    false,
 			ResponseFormat:            "url",
-			Watermark:                 true,
+			Watermark:                 false,
 		}
 	}
 
