@@ -1,7 +1,10 @@
 package database
 
 import (
+	"fairytale-creator/flag"
 	"fairytale-creator/logger"
+	"fairytale-creator/modelapi"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -39,4 +42,15 @@ func (p *StoryDao) AddStory(s *Story) error {
 		return InterError
 	}
 	return nil
+}
+
+func (p *StoryDao) AddStoryToD1(s *Story) (*modelapi.D1QueryResponse, error) {
+	client := modelapi.NewD1Client(flag.CfAccountID, flag.D1DatabaseID, flag.D1APIKey)
+	response, err := client.ExecuteQuery("INSERT INTO story (title, author, description, music_style, status, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		[]interface{}{s.Title, s.Author, s.Description, s.MusicStyle, s.Status, time.Now().Unix(), time.Now().Unix(), nil})
+	if err != nil {
+		logger.Error("添加故事到D1报错：", err.Error())
+		return nil, err
+	}
+	return response, nil
 }

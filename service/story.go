@@ -1,7 +1,6 @@
 package service
 
 import (
-	"errors"
 	"fairytale-creator/database"
 	"fairytale-creator/flag"
 	"fairytale-creator/logger"
@@ -10,6 +9,7 @@ import (
 	"fairytale-creator/util"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,7 +53,6 @@ func (s *StoryService) GenerateStory() *response.Story {
 	firstImageUrl := ""
 	for i, chapter := range story.Chapters {
 		imgUrl := ""
-		err := errors.New("")
 		if firstImageUrl != "" {
 			imgUrl, err = doubaoSeedreamClient.GenerateImageFromPromptAndGetURL(chapter.ImagePrompt)
 		} else {
@@ -98,28 +97,43 @@ func (s *StoryService) AddStory(story *response.Story) error {
 		Author:      story.Author,
 		Description: story.Description,
 		MusicStyle:  story.MusicStyle,
+		Status:      0,
 	}
-	err := storyDao.AddStory(&storyModel)
+	response, err := storyDao.AddStoryToD1(&storyModel)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
+	storyModel.ID = uint(response.Result[0].Meta.LastRowID)
 	chapterDao := database.NewChapterDao()
 	for _, chapter := range story.Chapters {
-		imagePath := path.Join(flag.ImageRoot, uuid.NewString()+currentDate+".png")
-		err := util.SaveImage(chapter.ImagePath, imagePath)
+		imageName := uuid.NewString() + currentDate + ".png"
+		uploader, err := modelapi.NewR2Uploader(flag.CfAccountID, flag.R2AccessKeyID, flag.R2AccessKeySecret, "fairytale")
 		if err != nil {
-			logger.Error("save image error: " + err.Error())
+			logger.Error(err.Error())
+			return err
+		}
+		err = uploader.UploadFromURL(chapter.ImagePath, imageName)
+		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+		voiceTemp := strings.Split(chapter.VoicePath, "/")
+		voiceName := voiceTemp[len(voiceTemp)-1]
+		err = uploader.UploadFromLocalFile(chapter.VoicePath, voiceName)
+		if err != nil {
+			logger.Error(err.Error())
+			return err
 		}
 		chapterModel := database.Chapter{
 			StoryID:     storyModel.ID,
 			Title:       chapter.Title,
 			Content:     chapter.Content,
 			ImagePrompt: chapter.ImagePrompt,
-			ImagePath:   imagePath,
-			VoicePath:   chapter.VoicePath,
+			ImagePath:   imageName,
+			VoicePath:   voiceName,
 		}
-		err = chapterDao.AddChapter(&chapterModel)
+		_, err = chapterDao.AddChapterToD1(&chapterModel)
 		if err != nil {
 			logger.Error(err.Error())
 			return err

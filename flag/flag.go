@@ -22,6 +22,12 @@ var (
 	MysqlHost             string
 	MysqlPort             string
 	MysqlDatabase         string
+	CfAccountID           string
+	D1DatabaseID          string
+	D1Email               string
+	D1APIKey              string
+	R2AccessKeyID         string
+	R2AccessKeySecret     string
 )
 
 func init() {
@@ -42,5 +48,11 @@ func init() {
 	flag.StringVar(&MysqlHost, "mysql-host", "localhost", "Mysq	l主机")
 	flag.StringVar(&MysqlPort, "mysql-port", "3306", "Mysql端口")
 	flag.StringVar(&MysqlDatabase, "mysql-database", "fairytale", "Mysql数据库")
+	flag.StringVar(&CfAccountID, "cf-account-id", "", "Cloudflare Account ID")
+	flag.StringVar(&D1DatabaseID, "d1-database-id", "", "D1 Database ID")
+	flag.StringVar(&D1Email, "d1-email", "", "D1 Email")
+	flag.StringVar(&D1APIKey, "d1-api-key", "", "D1 API Key")
+	flag.StringVar(&R2AccessKeyID, "r2-access-key-id", "", "R2 Access Key ID")
+	flag.StringVar(&R2AccessKeySecret, "r2-access-key-secret", "", "R2 Access Key Secret")
 	flag.Parse()
 }

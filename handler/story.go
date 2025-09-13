@@ -27,7 +27,7 @@ func addStory(c *gin.Context) {
 	// 	MusicStyle:  "故事音乐风格",
 	// 	Chapters: []response.Chapter{
 	// 		{Title: "章节标题", Content: "章节内容", ImagePrompt: "图片提示",
-	// 			ImagePath: "",
+	// 			ImagePath: "http://59.110.112.103/resource/unmute.png",
 	// 			VoicePath: "语音路径"},
 	// 	},
 	// }

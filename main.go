@@ -30,7 +30,7 @@ func main() {
 	handler.Init(r)
 	srv := &http.Server{
 		//0.0.0.0:8080
-		Addr:    ":9700",
+		Addr:    "127.0.0.1:9700",
 		Handler: r,
 	}
 	// 开始监听

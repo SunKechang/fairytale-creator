@@ -1,7 +1,10 @@
 package database
 
 import (
+	"fairytale-creator/flag"
 	"fairytale-creator/logger"
+	"fairytale-creator/modelapi"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -40,4 +43,15 @@ func (p *ChapterDao) AddChapter(c *Chapter) error {
 		return InterError
 	}
 	return nil
+}
+
+func (p *ChapterDao) AddChapterToD1(c *Chapter) (*modelapi.D1QueryResponse, error) {
+	client := modelapi.NewD1Client(flag.CfAccountID, flag.D1DatabaseID, flag.D1APIKey)
+	response, err := client.ExecuteQuery("INSERT INTO chapter (story_id, title, content, image_prompt, image_path, voice_path, created_at, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		[]interface{}{c.StoryID, c.Title, c.Content, c.ImagePrompt, c.ImagePath, c.VoicePath, time.Now().Unix(), time.Now().Unix(), nil})
+	if err != nil {
+		logger.Error("添加章节到D1报错：", err.Error())
+		return nil, err
+	}
+	return response, nil
 }

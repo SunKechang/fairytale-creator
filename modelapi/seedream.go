@@ -3,11 +3,12 @@ package modelapi
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
+
+	"fairytale-creator/logger"
 )
 
 // DoubaoSeedreamClient Doubao Seedream 文生图客户端
@@ -59,7 +60,7 @@ func NewDoubaoSeedreamClient(apiKey string) *DoubaoSeedreamClient {
 	return &DoubaoSeedreamClient{
 		APIKey:     apiKey,
 		BaseURL:    "https://ark.cn-beijing.volces.com/api/v3/images/generations",
-		HttpClient: &http.Client{Timeout: 30 * time.Second},
+		HttpClient: &http.Client{Timeout: 180 * time.Second},
 	}
 }
 
@@ -92,13 +93,15 @@ func (c *DoubaoSeedreamClient) GenerateImage(prompt string, imageURL *string) (*
 
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request body: %v", err)
+		logger.Error("failed to marshal request body: " + err.Error())
+		return nil, err
 	}
 
 	// 创建 HTTP 请求
 	req, err := http.NewRequest("POST", c.BaseURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		logger.Error("failed to create request: " + err.Error())
+		return nil, err
 	}
 
 	// 设置请求头
@@ -108,32 +111,38 @@ func (c *DoubaoSeedreamClient) GenerateImage(prompt string, imageURL *string) (*
 	// 发送请求
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
+		logger.Error("failed to send request: " + err.Error())
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	// 检查响应状态码
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		body, _ := io.ReadAll(resp.Body)
+		logger.Error("API request failed with status " + strconv.Itoa(resp.StatusCode) + ": " + string(body))
+		return nil, err
 	}
 
 	// 读取响应体
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
+		logger.Error("failed to read response body: " + err.Error())
+		return nil, err
 	}
+	logger.Log("generate image response", string(body))
 
 	// 解析响应
 	var response ImageGenerationResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %v", err)
+		logger.Error("failed to unmarshal response: " + err.Error())
+		return nil, err
 	}
 
 	// 检查是否有生成的图像
 	if len(response.Data) == 0 {
-		return nil, errors.New("no images generated")
+		logger.Error("no images generated")
+		return nil, err
 	}
 
 	return &response, nil
@@ -160,7 +169,8 @@ func (c *DoubaoSeedreamClient) GenerateImageAndGetURL(prompt string, imageURL *s
 		return response.Data[0].URL, nil
 	}
 
-	return "", errors.New("no image URL in response")
+	logger.Error("no image URL in response")
+	return "", err
 }
 
 // GenerateImageFromPromptAndGetURL 仅使用提示词生成图像并返回 URL（简化方法）
